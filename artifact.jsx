@@ -23,12 +23,13 @@ const T = {
 
 const fonts = `@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');`;
 
-async function callClaude(messages, tools = [], mcpServers = []) {
+// 기사 fetch는 Sonnet(web_search 필요), 단락 분석은 Haiku(저렴)
+async function callClaude(messages, tools = [], mcpServers = [], useFast = false) {
   if (!_apiKey) throw new Error("API 키를 먼저 입력해 주세요.");
 
   const body = {
-    model: "claude-sonnet-4-6",
-    max_tokens: 4096,
+    model: useFast ? "claude-haiku-4-5-20251001" : "claude-sonnet-4-6",
+    max_tokens: useFast ? 1500 : 2048,
     messages,
   };
   if (tools.length) body.tools = tools;
@@ -435,7 +436,7 @@ For each paragraph:
 Paragraphs:
 ${batchPrompt}`,
           },
-        ]);
+        ], [], [], true);
 
         try {
           const parsed = JSON.parse(extractText(analysisRes).replace(/```json|```/g, "").trim());

@@ -1,11 +1,12 @@
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
 
-export async function callClaude(messages, tools = [], mcpServers = []) {
+// useFast=true → Haiku (단락 분석용, 저렴) / false → Sonnet (기사 fetch용)
+export async function callClaude(messages, tools = [], mcpServers = [], useFast = false) {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
   const body = {
-    model: "claude-sonnet-4-6",
-    max_tokens: 4096,
+    model: useFast ? "claude-haiku-4-5-20251001" : "claude-sonnet-4-6",
+    max_tokens: useFast ? 1500 : 2048,
     messages,
   };
   if (tools.length) body.tools = tools;

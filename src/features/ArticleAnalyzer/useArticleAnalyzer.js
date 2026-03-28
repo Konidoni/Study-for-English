@@ -91,7 +91,7 @@ For each paragraph, return an object:
 Paragraphs to analyze:
 ${batchPrompt}`,
           },
-        ]);
+        ], [], [], true);
 
         const analysisText = extractText(analysisRes);
         try {
