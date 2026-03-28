@@ -3,6 +3,9 @@ import { useState } from "react";
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
 const NOTION_MCP = "https://mcp.notion.com/mcp";
 
+// API 키를 앱 상태로 관리 (아티팩트 환경용)
+let _apiKey = "";
+
 const T = {
   bg: "#0F0F0F",
   surface: "#1A1A1A",
@@ -21,6 +24,8 @@ const T = {
 const fonts = `@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');`;
 
 async function callClaude(messages, tools = [], mcpServers = []) {
+  if (!_apiKey) throw new Error("API 키를 먼저 입력해 주세요.");
+
   const body = {
     model: "claude-sonnet-4-6",
     max_tokens: 4096,
@@ -31,9 +36,20 @@ async function callClaude(messages, tools = [], mcpServers = []) {
 
   const res = await fetch(ANTHROPIC_API, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": _apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
     body: JSON.stringify(body),
   });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Claude API ${res.status}: ${err}`);
+  }
+
   return res.json();
 }
 
@@ -328,6 +344,8 @@ function NotionSaveModal({ onClose, onSave, loading }) {
 }
 
 export default function ArticleAnalyzer() {
+  const [apiKey, setApiKey] = useState("");
+  const [apiKeySet, setApiKeySet] = useState(false);
   const [url, setUrl] = useState("");
   const [mode, setMode] = useState("detailed");
   const [loading, setLoading] = useState(false);
@@ -338,6 +356,12 @@ export default function ArticleAnalyzer() {
   const [showNotion, setShowNotion] = useState(false);
   const [notionLoading, setNotionLoading] = useState(false);
   const [notionDone, setNotionDone] = useState(false);
+
+  function saveApiKey() {
+    if (!apiKey.trim()) return;
+    _apiKey = apiKey.trim();
+    setApiKeySet(true);
+  }
 
   async function analyzeArticle() {
     if (!url.trim()) return;
@@ -537,6 +561,80 @@ ${content}`,
 
       {/* Main */}
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 16px" }}>
+        {/* API Key input */}
+        {!apiKeySet && (
+          <div
+            style={{
+              marginBottom: 24,
+              padding: 20,
+              background: T.surface,
+              border: `1px solid ${T.border}`,
+              borderRadius: 12,
+            }}
+          >
+            <p style={{ fontSize: 13, color: T.textDim, margin: "0 0 12px", lineHeight: 1.6 }}>
+              🔑 Anthropic API 키를 입력하세요.{" "}
+              <span style={{ color: T.accent }}>console.anthropic.com</span> 에서 발급받을 수 있어요.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && saveApiKey()}
+                placeholder="sk-ant-..."
+                style={{
+                  flex: 1,
+                  padding: "10px 14px",
+                  background: T.bg,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 8,
+                  color: T.text,
+                  fontSize: 13,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  outline: "none",
+                }}
+              />
+              <button
+                onClick={saveApiKey}
+                disabled={!apiKey.trim()}
+                style={{
+                  padding: "10px 18px",
+                  background: apiKey.trim() ? T.accent : T.border,
+                  border: "none",
+                  borderRadius: 8,
+                  color: T.bg,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: apiKey.trim() ? "pointer" : "not-allowed",
+                  fontFamily: "'Noto Sans KR', sans-serif",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        )}
+
+        {apiKeySet && (
+          <div style={{ marginBottom: 16, display: "flex", justifyContent: "flex-end" }}>
+            <button
+              onClick={() => { setApiKeySet(false); _apiKey = ""; }}
+              style={{
+                fontSize: 11,
+                color: T.textDim,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "'Noto Sans KR', sans-serif",
+              }}
+            >
+              🔑 API 키 변경
+            </button>
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
           <input
             value={url}
